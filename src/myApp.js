@@ -28,10 +28,8 @@ var TAG_TILE_MAP = 1;
 
 var Helloworld = cc.Layer.extend({
     isMouseDown:false,
-    helloImg:null,
-    helloLabel:null,
-    circle:null,
-    sprite:null,
+    map:null,
+    curTile:null,
 
     init:function () {
         //////////////////////////////
@@ -44,32 +42,31 @@ var Helloworld = cc.Layer.extend({
         // ask director the window size
         var size = cc.Director.getInstance().getWinSize();
 
-
-        var lazyLayer = cc.LayerGradient.create(cc.c4b(98,99,117,255), cc.c4b(0,0,0,255));
+        var lazyLayer = cc.LayerGradient.create(cc.c4b(0,98,0,255), cc.c4b(0,45,0,255));
         this.addChild(lazyLayer);
 
-        var map = cc.TMXTiledMap.create("res/tims.tmx");
-        this.addChild(map, 0, TAG_TILE_MAP);
-
-        var ms = map.getMapSize();
-        var ts = map.getTileSize();
-        map.runAction(cc.MoveTo.create(1.0, cc.p(-ms.width * ts.width / 2, -ms.height * ts.height / 2)));
-
-
-
-//         lazyLayer.addChild(this.sprite, 0);
-
+        this.map = cc.TMXTiledMap.create("res/tims.tmx");
+        this.addChild(this.map, 0, TAG_TILE_MAP);
 
         this.setTouchEnabled(true);
+        if ('mouse' in sys.capabilities)
+            this.setMouseEnabled(true);
+
+        this.curTile = cc.Sprite.create("res/tile-cursor.png");
+        this.addChild(this.curTile);
+
         return true;
     },
+
     // a selector callback
     menuCloseCallback:function (sender) {
         cc.Director.getInstance().end();
     },
+/*
     onTouchesBegan:function (touches, event) {
         this.isMouseDown = true;
     },
+
     onTouchesMoved:function (touches, event) {
         var touch = touches[0];
         var delta = touch.getDelta();
@@ -78,18 +75,66 @@ var Helloworld = cc.Layer.extend({
         var diff = cc.pAdd(delta, node.getPosition());
         node.setPosition(diff);
     },
-    onMouseDragged:function (event) {
-        var delta = event.getDelta();
-        var node = this.getChildByTag(TAG_TILE_MAP);
-        var diff = cc.pAdd(delta, node.getPosition());
-        node.setPosition(diff);
+*/
+    onMouseMoved:function (event) {
+        var layer = this.map.getLayer("background"),
+            tilePt = this.pixelToTile(event._point),
+            pixPt = layer.getPositionAt(tilePt);
+
+        this.curTile.setPosition(pixPt);
+
+        // cc.log("mousePt", event._point);
+        // cc.log("pixPt  ", tilePt);
+
+        // cc.log("mousePt", event._point);
+        // var mapPt = this.map.convertToNodeSpace(event._point);
+        // cc.log("mapPt", mapPt);
+
+        // var layerPt = layer.convertToNodeSpace(event._point);
+        // cc.log("layerPt", layerPt);
+
+        // var node = this.getChildByTag(TAG_TILE_MAP);
+        // var diff = cc.pAdd(delta, node.getPosition());
+        // node.setPosition(diff);
     },
 
+    onMouseUp:function (event) {
+        var layer = this.map.getLayer("background"),
+            tilePt0 = this.pixelToTile( event._point ),
+            tilePt1 = {'x': tilePt0.x, 'y': tilePt0.y+1},
+            tile = layer.getTileAt(tilePt1);
+        tile.setColor(new cc.Color4F(1.0, 0, 0, .5));
+        tile.setDirty(true);
+    },
+/*
     onTouchesEnded:function (touches, event) {
+        cc.log("onTouchesEnded, touches: ", touches);
         this.isMouseDown = false;
     },
+
     onTouchesCancelled:function (touches, event) {
         console.log("onTouchesCancelled");
+    },
+*/
+    pixelToTile:function (pixelPos) {
+        var ms = this.map.getMapSize(),
+            ts = this.map.getTileSize();
+            xratio = pixelPos.x/ts.width,
+            xmid = ms.width/2,
+            yratio = pixelPos.y/ts.height,
+            posY = ms.height - xratio + xmid - yratio,
+            posX = ms.height + xratio - xmid - yratio;
+
+        posX = posX < 0 ? 0 : posX;
+        posX = posX > ms.width-1 ? ms.width-1 : posX;
+        posY = posY < 0 ? 0 : posY;
+        posY = posY > ms.height-1 ? ms.height-1 : posY;
+
+        return {
+            x: Math.floor(posX), 
+            y: Math.floor(posY) - 1
+        };
+
     }
 });
 
