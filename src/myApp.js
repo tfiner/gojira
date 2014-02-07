@@ -29,7 +29,7 @@ var TAG_TILE_MAP = 1;
 var Helloworld = cc.Layer.extend({
     isMouseDown:false,
     map:null,
-    curTile:null,
+    cursorSprite:null,
 
     init:function () {
         //////////////////////////////
@@ -52,8 +52,10 @@ var Helloworld = cc.Layer.extend({
         if ('mouse' in sys.capabilities)
             this.setMouseEnabled(true);
 
-        this.curTile = cc.Sprite.create("res/tile-cursor.png");
-        this.addChild(this.curTile);
+        this.cursorSprite = cc.Sprite.create("res/tile-cursor.png");
+        this.placingSprite = cc.Sprite.create("res/building01.png");
+        this.addChild(this.cursorSprite);
+        this.addChild(this.placingSprite);
 
         return true;
     },
@@ -62,60 +64,54 @@ var Helloworld = cc.Layer.extend({
     menuCloseCallback:function (sender) {
         cc.Director.getInstance().end();
     },
-/*
-    onTouchesBegan:function (touches, event) {
-        this.isMouseDown = true;
-    },
 
-    onTouchesMoved:function (touches, event) {
-        var touch = touches[0];
-        var delta = touch.getDelta();
-
-        var node = this.getChildByTag(TAG_TILE_MAP);
-        var diff = cc.pAdd(delta, node.getPosition());
-        node.setPosition(diff);
-    },
-*/
     onMouseMoved:function (event) {
         var layer = this.map.getLayer("background"),
             tilePt = this.pixelToTile(event._point),
-            pixPt = layer.getPositionAt(tilePt);
+            pixPt = layer.getPositionAt(tilePt),
+            ts = this.map.getTileSize(),
+            placingSize;
 
-        this.curTile.setPosition(pixPt);
 
-        // cc.log("mousePt", event._point);
-        // cc.log("pixPt  ", tilePt);
-
-        // cc.log("mousePt", event._point);
-        // var mapPt = this.map.convertToNodeSpace(event._point);
-        // cc.log("mapPt", mapPt);
-
-        // var layerPt = layer.convertToNodeSpace(event._point);
-        // cc.log("layerPt", layerPt);
-
-        // var node = this.getChildByTag(TAG_TILE_MAP);
-        // var diff = cc.pAdd(delta, node.getPosition());
-        // node.setPosition(diff);
+        this.cursorSprite.setPosition(pixPt);
+        if (this.placingSprite) {
+            placingSize = this.placingSprite.getContentSize();
+            this.placingSprite.setPosition({
+                x: pixPt.x,
+                y: pixPt.y + placingSize.height/2 - ts.height/2
+            });            
+        }
     },
 
     onMouseUp:function (event) {
-        var layer = this.map.getLayer("background"),
-            tilePt0 = this.pixelToTile( event._point ),
+            var backlayer = this.map.getLayer("background"),
+            tilePt0 = this.pixelToTile({
+                'x':event._point.x, 
+                'y':event._point.y
+            }),
             tilePt1 = {'x': tilePt0.x, 'y': tilePt0.y+1},
-            tile = layer.getTileAt(tilePt1);
-        tile.setColor(new cc.Color4F(1.0, 0, 0, .5));
-        tile.setDirty(true);
-    },
-/*
-    onTouchesEnded:function (touches, event) {
-        cc.log("onTouchesEnded, touches: ", touches);
-        this.isMouseDown = false;
+            buildLayerIdx, buildLayerName, buildLayer, buildingTile;
+
+        if (this.placingSprite) {
+            // Layers are drawn from the top of the screen to the bottom.
+            // This is forced by the order of the layers and the layers 
+            // are numbered 0-n.  The first layers in this prototype actually start
+            // at map position 3.
+            buildLayerIdx = tilePt1.x + tilePt1.y - 3;
+            // this.map.getLayer("buildings-" + tilePt1.y);
+            // "buildings-0" width="20" height="20">
+            // cc.log("tilePt1: ", tilePt1);
+            buildLayerName = "buildings-" + buildLayerIdx;
+            buildLayer = this.map.getLayer(buildLayerName);
+            if (buildLayer) {
+                buildingTile = buildLayer.getTileAt(tilePt1);
+                buildingTile.createWithSpriteFrame(this.placingSprite.displayFrame());
+                // buildingTile.setColor(new cc.Color4F(1.0, 0, 0, .5));
+                buildingTile.setDirty(true);
+            }
+        }
     },
 
-    onTouchesCancelled:function (touches, event) {
-        console.log("onTouchesCancelled");
-    },
-*/
     pixelToTile:function (pixelPos) {
         var ms = this.map.getMapSize(),
             ts = this.map.getTileSize();

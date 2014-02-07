@@ -5,6 +5,7 @@ var g_resources = [
     {src:"res/city1.png"},
     {src:"res/tile-cursor.png"},
     {src:"res/Isometric_Buildings_by_iSohei.png"},
+    {src:"res/building01.png"},
 
     //plist
 
